@@ -1,4 +1,6 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { appConfig } from './config/app.config';
@@ -11,7 +13,16 @@ const swaggerConfig = new DocumentBuilder()
   .build();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Set the directory for static assets
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+
+  // Set the directory for view templates
+  app.setBaseViewsDir(join(__dirname, '..', 'views'));
+
+  // Set EJS as the templating engine
+  app.setViewEngine('ejs');
+
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api', app, document);
 

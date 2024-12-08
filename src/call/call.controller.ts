@@ -1,4 +1,13 @@
-import { Body, Controller, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Render,
+  Req,
+  Res,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -8,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CallService } from './call.service';
+import { GetLogsQueryDto } from 'src/dto/call.dto';
 
 @ApiTags('calls')
 @Controller('calls')
@@ -74,7 +84,6 @@ export class CallController {
     @Res() res: Response,
   ) {
     try {
-      console.log('helloe', body);
       const twiml = await this.callService.handleIncomingCall({
         ...body,
         tries,
@@ -245,5 +254,29 @@ export class CallController {
         .status(err.statusCode || 500)
         .send(err.message || 'Internal Server Error');
     }
+  }
+
+  @Get('logs')
+  @ApiOperation({
+    summary:
+      'Retrieve call logs with optional filters, sorting, and pagination',
+  })
+  @ApiResponse({ status: 200, description: 'Successfully retrieved call logs' })
+  @ApiResponse({ status: 400, description: 'Invalid query parameters' })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error - something went wrong!',
+  })
+  async getLogs(@Query() query: GetLogsQueryDto) {
+    return this.callService.getLogs(query);
+  }
+
+  @Get('view-logs')
+  @Render('call-logs')
+  async getCallLogs(@Query() query: GetLogsQueryDto) {
+    try {
+      const calls = await this.callService.getLogs(query);
+      return { calls };
+    } catch (err) {}
   }
 }

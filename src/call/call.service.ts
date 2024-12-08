@@ -10,6 +10,7 @@ import {
   CallType,
 } from './call.entity';
 import { Repository } from 'typeorm';
+import { GetLogsQueryDto } from 'src/dto/call.dto';
 
 @Injectable()
 export class CallService {
@@ -113,16 +114,14 @@ export class CallService {
   }
 
   async handleVoiceMail(body): Promise<any> {
-    console.log(body);
-
-    const { CallSid, CallStatus, RecordingDuration, RecordingUrl } = body;
+    const { CallSid, RecordingDuration, RecordingUrl } = body;
 
     const call = await this.updateCall(
       {
         sid: CallSid,
       },
       {
-        status: CallStatus || CallStatusEnum.COMPLETED,
+        status: CallStatusEnum.COMPLETED,
         type: CallType.VOICEMAIL,
         duration: RecordingDuration,
         voicemailUrl: RecordingUrl,
@@ -135,8 +134,6 @@ export class CallService {
   async handleMenuKeyPress(body): Promise<void> {
     const { Digits, CallSid, To, From, CallStatus } = body;
     const tries = parseInt(body.tries || '0', 10);
-
-    console.log(body);
 
     const twiml = new Twilio.twiml.VoiceResponse();
 
@@ -170,9 +167,39 @@ export class CallService {
         method: 'POST',
       });
     } else {
+      twiml.say('incorrect key pressed!!!');
       twiml.redirect(`/calls/incoming?tries=${tries + 1}`);
     }
 
     return twiml.toString();
+  }
+
+  async getLogs(query: GetLogsQueryDto) {
+    const { type, status, to, from, page, limit, sortBy } = query;
+    const [sortField, sortOrder] = sortBy
+      ? sortBy.split(':')
+      : ['createdAt', 'DESC'];
+
+    const qb = this.callRepository.createQueryBuilder('call');
+
+    if (type) qb.andWhere('call.type = :type', { type });
+    if (status) qb.andWhere('call.status = :status', { status });
+    if (to) qb.andWhere('call.to = :to', { to });
+    if (from) qb.andWhere('call.from = :from', { from });
+
+    qb.orderBy(`call.${sortField}`, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    if (page && limit) {
+      qb.skip((page - 1) * limit).take(limit);
+    }
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+    };
   }
 }

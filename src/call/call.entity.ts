@@ -70,7 +70,6 @@ export class Call {
 
   // Computed property to calculate duration if it's 0
   get computedDuration(): number {
-    console.log(this);
     if (this.duration === 0 && this.status === CallStatus.COMPLETED) {
       return Math.floor(
         (new Date(this.updatedAt).getTime() -
@@ -82,10 +81,8 @@ export class Call {
   }
   //   @BeforeUpdate()
   //   calculateDuration() {
-  //     console.log(this, 'complete');
   //     // Automatically calculate duration if it's 0 and the call is completed
   //     if (this.duration == 0 && this.status === CallStatus.COMPLETED) {
-  //       console.log(new Date(), new Date(this.createdAt));
   //       this.duration = Math.floor(
   //         (new Date().getTime() - new Date(this.createdAt).getTime()) / 1000,
   //       );
